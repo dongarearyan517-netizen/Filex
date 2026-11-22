@@ -5,48 +5,84 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'TanoFilex_audited.zip'
+      - 'TanoFilex_Minimal_Purple_Updated.zip'
       - '.github/workflows/android.yml'
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '8.7'
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install Android SDK
+      - name: Install Android SDK packages
         run: |
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
+      - name: Install Gradle 8.7
+        run: |
+          curl -fsSLo gradle.zip \
+            https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle.zip -d "$HOME"
+          echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
+
+      - name: Check ZIP
+        run: |
+          test -f TanoFilex_Minimal_Purple_Updated.zip
+          unzip -t TanoFilex_Minimal_Purple_Updated.zip
+
       - name: Extract project
         run: |
-          unzip -q TanoFilex_audited.zip -d extracted
-          find extracted -name settings.gradle -o -name settings.gradle.kts
+          mkdir -p extracted
+          unzip -q TanoFilex_Minimal_Purple_Updated.zip -d extracted
 
-      - name: Build APK
+      - name: Find Android project
         run: |
-          cd extracted/TanoFilex
-          gradle assembleDebug
+          PROJECT_DIR="$(dirname "$(find extracted -name settings.gradle -type f -print -quit)")"
+
+          if [ ! -f "$PROJECT_DIR/app/build.gradle" ]; then
+            echo "Android project not found!"
+            exit 1
+          fi
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Found project: $PROJECT_DIR"
+
+      - name: Build TANO FileX
+        run: |
+          gradle --no-daemon --stacktrace assembleDebug \
+            --project-dir "$PROJECT_DIR"
+
+      - name: Prepare APK
+        run: |
+          APK_PATH="$(find "$PROJECT_DIR" -path '*/build/outputs/apk/debug/*.apk' -type f -print -quit)"
+
+          if [ -z "$APK_PATH" ]; then
+            echo "APK was not generated!"
+            exit 1
+          fi
+
+          cp "$APK_PATH" TANO-FileX-debug.apk
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TANO-FileX-APK
-          path: extracted/TanoFilex/app/build/outputs/apk/debug/app-debug.apk
+          path: TANO-FileX-debug.apk
+          if-no-files-found: error
+          retention-days: 7
           
