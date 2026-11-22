@@ -57,4 +57,3 @@ jobs:
           name: TANO-FileX-APK
           path: extracted/TanoFilex/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          
