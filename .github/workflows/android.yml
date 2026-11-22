@@ -1,11 +1,11 @@
 
-name: Build TANO FileX Storage Studio
+name: Build TANO FileX
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'TanoFilex_Purple_StorageStudio.zip'
+      - 'TanoFilex_Purple_StorageLegend_SideBubble_Fix.zip'
       - '.github/workflows/android.yml'
 
 permissions:
@@ -16,36 +16,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Java 17
+      - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install SDK packages
+      - name: Install Android SDK packages
         run: |
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Install Gradle 8.7
+      - name: Install Gradle
         run: |
-          curl -fsSLo gradle.zip \
-            https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          curl -fsSLo gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Verify and extract
+      - name: Check and extract project
         run: |
-          unzip -t TanoFilex_Purple_StorageStudio.zip
+          unzip -t TanoFilex_Purple_StorageLegend_SideBubble_Fix.zip
           mkdir extracted
-          unzip -q TanoFilex_Purple_StorageStudio.zip -d extracted
+          unzip -q TanoFilex_Purple_StorageLegend_SideBubble_Fix.zip -d extracted
 
-      - name: Locate project
+      - name: Find Android project
         run: |
           PROJECT_DIR="$(dirname "$(find extracted -name settings.gradle -type f -print -quit)")"
           test -f "$PROJECT_DIR/app/build.gradle"
@@ -53,8 +52,7 @@ jobs:
 
       - name: Build APK
         run: |
-          gradle --no-daemon --stacktrace \
-            -p "$PROJECT_DIR" assembleDebug
+          gradle --no-daemon --stacktrace -p "$PROJECT_DIR" assembleDebug
 
       - name: Verify APK
         run: |
@@ -63,8 +61,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TANO-FileX-Storage-Studio
+          name: TANO-FileX-Storage-Fix
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
           
