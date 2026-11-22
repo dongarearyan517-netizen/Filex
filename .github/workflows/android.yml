@@ -26,8 +26,7 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK packages
-        run: |
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -39,30 +38,6 @@ jobs:
           unzip -q TANO_FileX_GitHub_Upload.zip -d project
           test -f project/TanoFilex/settings.gradle
           test -f project/TanoFilex/app/build.gradle
-
-      - name: Fix quick menu crash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path(
-              "project/TanoFilex/app/src/main/java/com/tano/filex/HomeFragment.java"
-          )
-
-          if not p.exists():
-              raise SystemExit("HomeFragment.java not found")
-
-          source = p.read_text()
-          old = '"◈   APK files", '
-
-          if old not in source:
-              raise SystemExit("Expected APK menu entry not found; stopping safely")
-
-          source = source.replace(old, '', 1)
-          p.write_text(source)
-
-          print("Quick menu crash fix applied.")
-          PY
 
       - name: Build APK
         working-directory: project/TanoFilex
