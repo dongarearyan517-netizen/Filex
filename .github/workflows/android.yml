@@ -33,37 +33,28 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Find Android project and build APK
+      - name: Extract TANO FileX
         run: |
-          echo "Searching for Android project..."
+          mkdir -p extracted
 
-          SETTINGS_FILE=$(find . -type f \( -name settings.gradle -o -name settings.gradle.kts \) -not -path './.git/*' -print -quit)
+          unzip -o TANO_FileX_GitHub_Upload_FIXED.zip -d extracted
 
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "ERROR: Cannot find settings.gradle"
-            echo "Repository structure:"
-            find . -maxdepth 4 -type f | head -150
-            exit 1
-          fi
+          echo "Checking Android project..."
 
-          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-          echo "Project found: $PROJECT_DIR"
+          test -f extracted/TanoFilex/settings.gradle
+          test -f extracted/TanoFilex/app/build.gradle
 
-          cd "$PROJECT_DIR"
+          echo "Project verified!"
 
-          if [ ! -f app/build.gradle ] && [ ! -f app/build.gradle.kts ]; then
-            echo "ERROR: Android app module not found."
-            find . -maxdepth 3 -type f
-            exit 1
-          fi
-
+      - name: Build APK
+        working-directory: extracted/TanoFilex
+        run: |
           gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TANO-FileX-APK
-          path: |
-            **/app/build/outputs/apk/debug/*.apk
+          path: extracted/TanoFilex/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           
