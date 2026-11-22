@@ -1,11 +1,11 @@
 
-name: Build TANO FileX APK
+name: Build TANO FileX Storage Studio
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'TanoFilex_Purple_New_Layout.zip'
+      - 'TanoFilex_Purple_StorageStudio.zip'
       - '.github/workflows/android.yml'
 
 permissions:
@@ -16,40 +16,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v5
+      - name: Java 17
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v4
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
 
-      - name: Install Android SDK
+      - name: Install SDK packages
         run: |
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Install Gradle
+      - name: Install Gradle 8.7
         run: |
           curl -fsSLo gradle.zip \
             https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Extract project
+      - name: Verify and extract
         run: |
+          unzip -t TanoFilex_Purple_StorageStudio.zip
           mkdir extracted
-          unzip -q TanoFilex_Purple_New_Layout.zip -d extracted
+          unzip -q TanoFilex_Purple_StorageStudio.zip -d extracted
+
+      - name: Locate project
+        run: |
+          PROJECT_DIR="$(dirname "$(find extracted -name settings.gradle -type f -print -quit)")"
+          test -f "$PROJECT_DIR/app/build.gradle"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
         run: |
           gradle --no-daemon --stacktrace \
-            -p extracted/TanoFilex assembleDebug
+            -p "$PROJECT_DIR" assembleDebug
+
+      - name: Verify APK
+        run: |
+          test -f "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TANO-FileX-New-Layout
-          path: extracted/TanoFilex/app/build/outputs/apk/debug/app-debug.apk
+          name: TANO-FileX-Storage-Studio
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 7
           
