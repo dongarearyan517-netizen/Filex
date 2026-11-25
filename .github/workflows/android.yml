@@ -21,15 +21,45 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Find and extract ZIP
+        run: |
+          mkdir -p extracted
+          ZIP_FILE=$(find . -maxdepth 4 -type f -name "*.zip" | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No project ZIP found in repository."
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP_FILE"
+          unzip "$ZIP_FILE" -d extracted
+
+      - name: Locate Android project
+        run: |
+          GRADLE_FILE=$(find extracted -type f -name "gradlew" | head -n 1)
+
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "ERROR: gradlew not found inside extracted ZIP."
+            find extracted -maxdepth 4 -type f
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$GRADLE_FILE")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Android project found at: $PROJECT_DIR"
+
       - name: Grant Gradle permission
-        run: chmod +x gradlew
+        run: chmod +x "$PROJECT_DIR/gradlew"
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug
+        run: |
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TANO-VIBE-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: extracted/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
           
