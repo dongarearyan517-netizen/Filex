@@ -1,11 +1,8 @@
 
-name: Build TANO FileX APK
+name: TANO VIBE Android Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
@@ -13,47 +10,26 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v5
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Grant Gradle permission
+        run: chmod +x gradlew
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
-      - name: Extract TANO FileX
-        run: |
-          mkdir -p extracted
-
-          unzip -o TANO_FileX_GitHub_Upload_FIXED.zip -d extracted
-
-          echo "Checking Android project..."
-
-          test -f extracted/TanoFilex/settings.gradle
-          test -f extracted/TanoFilex/app/build.gradle
-
-          echo "Project verified!"
-
-      - name: Build APK
-        working-directory: extracted/TanoFilex
-        run: |
-          gradle --no-daemon assembleDebug
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TANO-FileX-APK
-          path: extracted/TanoFilex/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          name: TANO-VIBE-APK
+          path: app/build/outputs/apk/debug/*.apk
+          
